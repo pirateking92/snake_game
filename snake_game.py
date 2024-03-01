@@ -7,6 +7,7 @@ pygame.init()
 SW, SH = 800, 800
 
 BLOCK_SIZE = 50
+FONT = pygame.font.Font("font.ttf", BLOCK_SIZE*2)
 
 screen = pygame.display.set_mode((800, 800))
 pygame.display.set_caption("SNAAAAAKE! by Matt")
@@ -17,65 +18,51 @@ class Snake:
         self.x, self.y = BLOCK_SIZE, BLOCK_SIZE
         self.xdir = 1
         self.ydir = 0
-        self.head = [pygame.Rect(self.x, self.y, BLOCK_SIZE, BLOCK_SIZE)]
-        self.body = []
+        self.head = pygame.Rect(self.x, self.y, BLOCK_SIZE, BLOCK_SIZE)
+        self.body = [pygame.Rect(self.x-BLOCK_SIZE, self.y, BLOCK_SIZE, BLOCK_SIZE)]
         self.dead = False
-        self.apple_eaten = False
 
     def update(self):
         global apple
         for square in self.body:
-            if self.head[0].colliderect(square):
+            if self.head.x == square.x and self.head.y == square.y:
                 self.dead = True
-        if not (0 <= self.head[0].x < SW) or not (0 <= self.head[0].y < SH):
-            self.dead = True
+            if self.head.x not in range(0, SW) or self.head.y not in range(0, SH):
+                self.dead = True
 
         if self.dead:
-            if self.head[0].colliderect(apple.rect):
-                self.body.append(pygame.Rect(self.head[0].x, self.head[0].y, BLOCK_SIZE, BLOCK_SIZE))
-                apple.respawn()
-                self.dead = False
-            else:
-                self.x, self.y = BLOCK_SIZE, BLOCK_SIZE
-                self.head = [pygame.Rect(self.x, self.y, BLOCK_SIZE, BLOCK_SIZE)]
-                self.body = []
-                self.xdir = 1
-                self.ydir = 0
-                apple = Apple()
-
-        if not self.dead:
-            if self.head[0].colliderect(apple.rect) and not self.apple_eaten:
-                self.body.append(pygame.Rect(self.head[0].x, self.head[0].y, BLOCK_SIZE, BLOCK_SIZE))
-                self.apple_eaten = True
-            else:
-                self.apple_eaten = False
-
-            self.body.append(self.head[0].copy())
-            for i in range(len(self.body) - 1):
-                self.body[i].x = self.body[i + 1].x
-                self.body[i].y = self.body[i + 1].y
-            self.head[0].x += self.xdir * BLOCK_SIZE
-            self.head[0].y += self.ydir * BLOCK_SIZE
-            if len(self.body) > 0:
-                self.body.pop()
+            self.x, self.y = BLOCK_SIZE, BLOCK_SIZE
+            self.head = pygame.Rect(self.x, self.y, BLOCK_SIZE, BLOCK_SIZE)
+            self.body = [pygame.Rect(self.x-BLOCK_SIZE, self.y, BLOCK_SIZE, BLOCK_SIZE)]
+            self.xdir = 1
+            self.ydir = 0
+            self.dead = False
+            apple = Apple()
+        
+        self.body.append(self.head)
+        for i in range(len(self.body)-1):
+            self.body[i].x, self.body[i].y = self.body[i+1].x, self.body[i+1].y
+        self.head.x += self.xdir * BLOCK_SIZE
+        self.head.y += self.ydir * BLOCK_SIZE
+        self.body.remove(self.head)
 
 class Apple:
     def __init__(self):
-        self.respawn()
-
-    def respawn(self):
-        self.x = random.randint(0, (SW - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE
-        self.y = random.randint(0, (SH - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE
+        self.x = int(random.randint(0, SW)/BLOCK_SIZE) * BLOCK_SIZE
+        self.y = int(random.randint(0, SH)/BLOCK_SIZE) * BLOCK_SIZE
         self.rect = pygame.Rect(self.x, self.y, BLOCK_SIZE, BLOCK_SIZE)
-
+    
     def update(self):
-        pygame.draw.rect(screen, "red", self.rect)
+        pygame.draw.rect(screen, "orange", self.rect)
 
 def draw_grid():
     for x in range(0, SW, BLOCK_SIZE):
         for y in range(0, SH, BLOCK_SIZE):
             rect = pygame.Rect(x, y, BLOCK_SIZE, BLOCK_SIZE)
-            pygame.draw.rect(screen, "green", rect, 1)
+            pygame.draw.rect(screen, "#3c3c3b", rect, 1)
+
+score = FONT.render("1", True, "white")
+score_rect = score.get_rect(center=(SW/2, SH/20))
 
 draw_grid()
 
@@ -108,14 +95,18 @@ while True:
 
     apple.update()
 
-    pygame.draw.rect(screen, "green", snake.head[0])
+    score = FONT.render(f"{len(snake.body) + 1}", True, "white")
+
+    pygame.draw.rect(screen, "green", snake.head)
 
     for square in snake.body:
         pygame.draw.rect(screen, "green", square)
+
+    screen.blit(score, score_rect)
     
-    if snake.head[0].x == apple.x and snake.head[0].y == apple.y:
-        snake.body.append(pygame.Rect(snake.head[0].x, snake.head[0].y, BLOCK_SIZE, BLOCK_SIZE))
-        apple.respawn()
+    if snake.head.x == apple.x and snake.head.y == apple.y:
+        snake.body.append(pygame.Rect(square.x, square.y, BLOCK_SIZE, BLOCK_SIZE))
+        apple = Apple()
 
     pygame.display.update()
-    clock.tick(10)
+    clock.tick(5)
